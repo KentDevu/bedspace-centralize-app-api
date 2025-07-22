@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   // 'admin' | 'landlord' | 'user'
+  messagesSent     Message[] @relation("SentMessages")
+  messagesReceived Message[] @relation("ReceivedMessages")
+  bookings  BookingStatus[]
+  reports   Report[] @relation("UserReports")
+  bedspaces Bedspace[] // Add this line for landlord relation
+}
+
+model Bedspace {
+  id            Int      @id @default(autoincrement())
+  title         String
+  description   String
+  price         Float
+  location      String
+  landlordId    Int
+  landlord      User     @relation(fields: [landlordId], references: [id])
+  status        String   // 'pending' | 'approved' | 'rejected' | 'active' | 'inactive'
+  availableSlots Int
+  images        Image[]
+  rules         Rule[]
+  bookings      BookingStatus[]
+  reports       Report[] @relation("ListingReports")
+}
+
+model Image {
+  id         Int      @id @default(autoincrement())
+  bedspaceId Int
+  url        String
+  bedspace   Bedspace @relation(fields: [bedspaceId], references: [id])
+}
+
+model Rule {
+  id         Int      @id @default(autoincrement())
+  bedspaceId Int
+  text       String
+  bedspace   Bedspace @relation(fields: [bedspaceId], references: [id])
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  content    String
+  timestamp  DateTime @default(now())
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model BookingStatus {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  bedspaceId Int
+  status     String   // 'interested' | 'booked'
+  user       User     @relation(fields: [userId], references: [id])
+  bedspace   Bedspace @relation(fields: [bedspaceId], references: [id])
+}
+
+model Report {
+  id         Int      @id @default(autoincrement())
+  reportedBy Int
+  listingId  Int
+  reason     String
+  resolved   Boolean  @default(false)
+  user       User     @relation("UserReports", fields: [reportedBy], references: [id])
+  bedspace   Bedspace @relation("ListingReports", fields: [listingId], references: [id])
+} 
